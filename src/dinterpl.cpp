@@ -35,7 +35,6 @@ dinterpl::dinterpl(const double x_array[], const double y_array[], size_t size){
   
   cspline_init(this->x_array, this->y_array, size);
 
-  this->internal_cache = 0;
 }
 
 dinterpl::~dinterpl(){
@@ -131,7 +130,7 @@ double dinterpl::linear_eval (double x, cache * cache){
   size_t index;
   const double xmin = x_array[0];
   const double xmax = x_array[size-1];
-  
+
   if (x > xmax or x < xmin) {
     y = 0.0;
   }
@@ -165,13 +164,15 @@ double dinterpl::linear_eval (double x){
   size_t index;
   const double xmin = x_array[0];
   const double xmax = x_array[size-1];
-  
+  static size_t internal_cache;
+
   if (x > xmax or x < xmin) {
     y = 0.0;
   }
   else {
 
     index = interp_accel_find (internal_cache, x_array, size, x);
+    internal_cache = index;
 
     /* evaluate */
     x_lo = x_array[index];
@@ -233,12 +234,14 @@ double dinterpl::cspline_eval(double x){
   size_t index;
   double xmin = x_array[0];
   double xmax = x_array[size-1];
-  
+  static size_t internal_cache;
+
   if (x > xmax or x < xmin) {
     y = 0.0;
   }
   else {
     index = interp_accel_find (internal_cache, x_array, size, x);
+    internal_cache = index;
   
     /* evaluate */
     x_lo = x_array[index];
