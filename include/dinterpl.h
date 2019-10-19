@@ -63,10 +63,7 @@ class dinterpl{
 
     size_t size;
 
-    size_t internal_cache;
-    
     void cspline_init(const double x_array[], const double y_array[], size_t size);
-
 
     /*
       Inline search fuctions
@@ -102,7 +99,7 @@ class dinterpl{
       return cache->cache;
     }
 
-    inline static size_t interp_accel_find(size_t& internal_cache, const double xa[], size_t len, double x)
+    inline static size_t interp_accel_find(size_t internal_cache, const double xa[], size_t len, double x)
     {
       size_t x_index = internal_cache;
 
