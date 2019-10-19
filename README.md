@@ -1,1 +1,1 @@
-# firm_tofu
+# C++ Class for linear and cubic spline interpolation
