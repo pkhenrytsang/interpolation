@@ -42,7 +42,7 @@ if (myfile.is_open())
 		}
 	}
 myfile.close();
-
+/*
 {
 std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 dinterpl interpl(ax,ay2,N);
@@ -50,35 +50,59 @@ std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
   std::cout << "Avg Time CPU (Cubic init) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)).count() << "[µs]" << std::endl;
   std::cout << "Avg Time CPU (Cubic init) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)).count() << "[ns]" << std::endl;
 }
-
+*/
 
 dinterpl interpl(ax,ay2,N);
+//Use linear interpolation at discontinuities
+const double threshold = 500.0;
+interpl.cspline_filter(threshold);
+
 
 gsl_set_error_handler_off();
 
 //Linear Test and benchmark
+
+
 {
-  dinterpl::cache *cache = dinterpl::cache_alloc ();
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+  ofstream file;
+  file.open ("lin_interp.txt");
+
+  //#pragma omp parallel for
   for (int i=0;i<=M;i++){
-    double x = -6.0+i*12.0/100;
-  	double test = interpl.linear_eval(x,cache);
+    double x = -6.0+i*12.0/M;
+  	double test = interpl.linear_cached_eval(x);
+    file << x << ' ' << test << '\n';
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "Avg Time CPU (linear external cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)/(M+1)).count() << "[µs]" << std::endl;
-  std::cout << "Avg Time CPU (linear external cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)/(M+1)).count() << "[ns]" << std::endl;
-  dinterpl::cache_free (cache);
+  std::cout << "Tot Time CPU (linear internal cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)).count() << "[µs]" << std::endl;
+  std::cout << "Tot Time CPU (linear internal cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)).count() << "[ns]" << std::endl;
+  std::cout << "Avg Time CPU (linear internal cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)/(M+1)).count() << "[µs]" << std::endl;
+  std::cout << "Avg Time CPU (linear internal cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)/(M+1)).count() << "[ns]" << std::endl;
+
+  file.close();
 }
 
 {
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
+  //ofstream file;
+  //file.open ("lin_interp.txt");
+
+  //#pragma omp parallel for
   for (int i=0;i<=M;i++){
-    double x = -6.0+i*12.0/100;
+    double x = -6.0+i*12.0/M;
   	double test = interpl.linear_eval(x);
+    //file << x << ' ' << test << '\n';
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "Avg Time CPU (linear internal cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)/(M+1)).count() << "[µs]" << std::endl;
-  std::cout << "Avg Time CPU (linear internal cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)/(M+1)).count() << "[ns]" << std::endl;
+  std::cout << "Tot Time CPU (linear no cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)).count() << "[µs]" << std::endl;
+  std::cout << "Tot Time CPU (linear no cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)).count() << "[ns]" << std::endl;
+  std::cout << "Avg Time CPU (linear no cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)/(M+1)).count() << "[µs]" << std::endl;
+  std::cout << "Avg Time CPU (linear no cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)/(M+1)).count() << "[ns]" << std::endl;
+
+  //file.close();
 }
 
 {
@@ -87,7 +111,7 @@ gsl_set_error_handler_off();
   gsl_spline_init(spline,ax,ay2,N);
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
   for (int i=0;i<=M;i++){
-    double x = -6.0+i*12.0/100;
+    double x = -6.0+i*12.0/M;
   	double test = gsl_spline_eval(spline,x,acc);
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -103,7 +127,7 @@ gsl_set_error_handler_off();
   gsl_spline_init(spline,ax,ay2,N);
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
   for (int i=0;i<=M;i++){
-    double x = -6.0+i*12.0/100;
+    double x = -6.0+i*12.0/M;
   	double test = gsl_spline_eval(spline,x,0);
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -115,29 +139,47 @@ gsl_set_error_handler_off();
 
 
 //Cubic Test
+
 {
-  dinterpl::cache *cache = dinterpl::cache_alloc();
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+  
+  //ofstream file;
+  //file.open ("cubic_interp.txt");
+
   for (int i=0;i<=M;i++){
-    double x = -6.0+i*12.0/100;
-  	double test = interpl.cspline_eval(x,cache);
+    double x = -6.0+i*12.0/M;
+  	double test = interpl.cspline_cached_eval(x);
+    //file << x << ' ' << test << '\n';
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "Avg Time CPU (cubic external cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)/(M+1)).count() << "[µs]" << std::endl;
-  std::cout << "Avg Time CPU (cubic external cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)/(M+1)).count() << "[ns]" << std::endl;
-  dinterpl::cache_free (cache);
+  std::cout << "Tot Time CPU (linear internal cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)).count() << "[µs]" << std::endl;
+  std::cout << "Tot Time CPU (linear internal cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)).count() << "[ns]" << std::endl;
+
+  std::cout << "Avg Time CPU (cubic internal cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)/(M+1)).count() << "[µs]" << std::endl;
+  std::cout << "Avg Time CPU (cubic internal cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)/(M+1)).count() << "[ns]" << std::endl;
+
+  //file.close();
 }
 
 {
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
   
+  ofstream file;
+  file.open ("cubic_interp.txt");
+
   for (int i=0;i<=M;i++){
-    double x = -6.0+i*12.0/100;
+    double x = -6.0+i*12.0/M;
   	double test = interpl.cspline_eval(x);
+    file << x << ' ' << test << '\n';
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-  std::cout << "Avg Time CPU (cubic internal cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)/(M+1)).count() << "[µs]" << std::endl;
-  std::cout << "Avg Time CPU (cubic internal cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)/(M+1)).count() << "[ns]" << std::endl;
+  std::cout << "Tot Time CPU (cubic no cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)).count() << "[µs]" << std::endl;
+  std::cout << "Tot Time CPU (cubic no cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)).count() << "[ns]" << std::endl;
+
+  std::cout << "Avg Time CPU (cubic no cache) = " << std::chrono::duration_cast<std::chrono::microseconds>((end - begin)/(M+1)).count() << "[µs]" << std::endl;
+  std::cout << "Avg Time CPU (cubic no cache) = " << std::chrono::duration_cast<std::chrono::nanoseconds> ((end - begin)/(M+1)).count() << "[ns]" << std::endl;
+
+  file.close();
 }
 
 {
@@ -146,7 +188,7 @@ gsl_set_error_handler_off();
   gsl_spline_init(spline,ax,ay2,N);
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
   for (int i=0;i<=M;i++){
-    double x = -6.0+i*12.0/100;
+    double x = -6.0+i*12.0/M;
   	double test = gsl_spline_eval(spline,x,acc);
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -162,7 +204,7 @@ gsl_set_error_handler_off();
   gsl_spline_init(spline,ax,ay2,N);
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
   for (int i=0;i<=M;i++){
-    double x = -6.0+i*12.0/100;
+    double x = -6.0+i*12.0/M;
   	double test = gsl_spline_eval(spline,x,0);
   }
   std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
